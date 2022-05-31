@@ -1,6 +1,5 @@
 from bs4 import BeautifulSoup
 import urllib.request
-from pprint import pprint
 
 AEROSPACE = "https://degrees.apps.asu.edu/major-map/ASU00/ESAEROBSE/null/ALL/2020?init=false&nopassive=true"
 ENGLISH = "https://degrees.apps.asu.edu/major-map/ASU00/LAENGBA/null/ONLINE/2013?init=false&nopassive=true"
