@@ -1,6 +1,7 @@
 from bs4 import BeautifulSoup
 import urllib.request
 
+
 def flatten(nested_list: list) -> list:
     temp = []
     for x in nested_list:
@@ -10,6 +11,7 @@ def flatten(nested_list: list) -> list:
         else:
             temp.append(x)
     return temp
+
 
 class MajorMap:
     AEROSPACE = "https://degrees.apps.asu.edu/major-map/ASU00/ESAEROBSE/null/ALL/2020?init=false&nopassive=true"
@@ -21,7 +23,6 @@ class MajorMap:
 
         :param major_map_url: the url of the major map
         """
-
 
         # get our soup
         foo = urllib.request.urlopen(major_map_url)
@@ -99,7 +100,7 @@ class MajorMap:
         out = [x for x in list2 if x not in list1]
         return out
 
-    def total_classes(self, maj_map: 'MajorMap', labels=False):
+    def get_total_classes(self, maj_map: 'MajorMap', labels=False):
         if labels:  # use stupid term labels
             dict1 = dict(self.get_terms_list(False, True))
             dict2 = dict(maj_map.get_terms_list(False, True))
