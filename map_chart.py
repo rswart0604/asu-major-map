@@ -45,4 +45,24 @@ class Chart:
                         d += flow.Box(w=self.BOX_WIDTH, h=self.BOX_HEIGHT).label(result).at((x_pos, y_pos))
                     x_pos += (self.BOX_WIDTH + 1)
             else:  # we got a nested list on our hands
-                return
+                x_pos = 0
+                for courses in self.map:
+                    y_pos = self.BOX_HEIGHT + 1
+                    for course in courses:
+                        y_pos -= (self.BOX_HEIGHT + 1)
+
+                        # stupid stupid string formatting stuff. no more than 20 chars per line
+                        words = course.split()
+                        word_list = []
+                        tmp = ""
+                        for word in words:
+                            tmp += (word + " ")
+                            if len(tmp) > 12:
+                                word_list.append((tmp + '\n'))
+                                tmp = str('')
+                        result = ''.join(word_list)
+                        if result == '':  # if we only have one word for our course (ie 'Elective'), this catches that
+                            result = course
+
+                        d += flow.Box(w=self.BOX_WIDTH, h=self.BOX_HEIGHT).label(result).at((x_pos, y_pos))
+                    x_pos += (self.BOX_WIDTH + 1)

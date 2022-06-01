@@ -1,3 +1,5 @@
+import copy
+
 from bs4 import BeautifulSoup
 import urllib.request
 
@@ -77,12 +79,12 @@ class MajorMap:
         :return: with no args, a list of lists of each course (string), each list being a term
         """
         if hours and labels:
-            return self.hours_terms_dict
+            return copy.deepcopy(self.hours_terms_dict)
         if labels:
-            return self.terms_dict
+            return copy.deepcopy(self.terms_dict)
         if hours:
-            return self.hours_term_list
-        return self.terms_list
+            return copy.deepcopy(self.hours_term_list)
+        return copy.deepcopy(self.terms_list)
 
     def find_similar_courses(self, maj_map: 'MajorMap'):
         list1 = self.terms_list
@@ -95,24 +97,24 @@ class MajorMap:
         :param maj_map: a major map that you want to find the exclusive courses of
         :return: a list of all courses in maj_map that are not in self
         """
-        list1 = flatten(list(self.terms_list))
-        list2 = flatten(list(maj_map.get_terms_list()))
+        list1 = flatten(self.get_terms_list())
+        list2 = flatten(maj_map.get_terms_list())
         out = [x for x in list2 if x not in list1]
         return out
 
     def get_total_classes(self, maj_map: 'MajorMap', labels=False):
         if labels:  # use stupid term labels
-            dict1 = dict(self.get_terms_list(False, True))
-            dict2 = dict(maj_map.get_terms_list(False, True))
-            flat_list = flatten(list(self.get_terms_list()))
+            dict1 = self.get_terms_list(False, True)
+            dict2 = maj_map.get_terms_list(False, True)
+            flat_list = flatten(self.get_terms_list())
             for term, courses in dict2.items():
                 for course in courses:
                     if course not in flat_list:
                         dict1[term].append(course)
             return dict1
         else:
-            list1 = flatten(list(self.terms_list))
-            list2 = flatten(list(maj_map.get_terms_list()))
+            list1 = flatten(self.get_terms_list())
+            list2 = flatten(maj_map.get_terms_list())
             for x in list2:
                 if x not in list1:
                     list1.append(x)
