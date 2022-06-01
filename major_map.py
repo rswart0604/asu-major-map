@@ -1,6 +1,16 @@
 from bs4 import BeautifulSoup
 import urllib.request
 
+def flatten(nested_list: list) -> list:
+    temp = []
+    for x in nested_list:
+        if type(x) is list:
+            for y in x:
+                temp.append(y)
+        else:
+            temp.append(x)
+    return temp
+
 class MajorMap:
     AEROSPACE = "https://degrees.apps.asu.edu/major-map/ASU00/ESAEROBSE/null/ALL/2020?init=false&nopassive=true"
     ENGLISH = "https://degrees.apps.asu.edu/major-map/ASU00/LAENGBA/null/ONLINE/2013?init=false&nopassive=true"
@@ -56,7 +66,7 @@ class MajorMap:
             self.terms_list.append(temp_course_list)
             self.terms_dict[term_number] = temp_course_list
 
-    def get_term_list(self, hours=False, labels=False):
+    def get_terms_list(self, hours=False, labels=False):
         """Will return a list of the courses in the map. Will be a nested list
         where each term's worth of courses are in their own list
 
@@ -73,45 +83,36 @@ class MajorMap:
             return self.hours_term_list
         return self.terms_list
 
-    def find_similar_courses(self, map: 'MajorMap'):
+    def find_similar_courses(self, maj_map: 'MajorMap'):
         list1 = self.terms_list
-        list2 = map.get_term_list()
+        list2 = maj_map.get_terms_list()
         out = [item for item in list1 if item in list2]
         return out
 
-    def total_classes(self, map: 'MajorMap', labels=False):
+    def find_diff_courses(self, maj_map: 'MajorMap'):
+        """Finds mutually exclusive courses
+        :param maj_map: a major map that you want to find the exclusive courses of
+        :return: a list of all courses in maj_map that are not in self
+        """
+        list1 = flatten(list(self.terms_list))
+        list2 = flatten(list(maj_map.get_terms_list()))
+        out = [x for x in list2 if x not in list1]
+        return out
+
+    def total_classes(self, maj_map: 'MajorMap', labels=False):
         if labels:  # use stupid term labels
-            dict1 = dict(self.get_term_list(False, True))
-            dict2 = dict(map.get_term_list(False, True))
-            for term, courses in dict2:
+            dict1 = dict(self.get_terms_list(False, True))
+            dict2 = dict(maj_map.get_terms_list(False, True))
+            flat_list = flatten(list(self.get_terms_list()))
+            for term, courses in dict2.items():
                 for course in courses:
-                    if course not in self.get_term_list():
+                    if course not in flat_list:
                         dict1[term].append(course)
             return dict1
         else:
-            list1 = list(self.terms_list)
-            for x in map.get_term_list():
+            list1 = flatten(list(self.terms_list))
+            list2 = flatten(list(maj_map.get_terms_list()))
+            for x in list2:
                 if x not in list1:
                     list1.append(x)
             return list1
-
-
-# def total_classes(list1, list2, labels=False):
-#     if (labels):   # list1 and list2 are dicts with term labels -> {'term': [(class, hour), (class, hour)]}
-#         d1 = dict(list1)
-#         d2 = dict(list2)
-#         if (len(d1) != len(d2)):
-#             raise Exception  # deal with stupid A and B terms if they exist
-#         for term, courses in d2:
-#             for course in courses:
-#                 if course not in d1
-#     else:  # list1 and list2 have no term labels. normal lists
-#         l1 = list(list1)
-#         l2 = list(list2)
-#         l1 = flatten(remove_hours(l1))
-#         l2 = flatten(remove_hours(l2))
-#         new_l = list(l1)
-#         for x in l2:
-#             if x not in l1:
-#                 new_l.append(x)
-#         return new_l
