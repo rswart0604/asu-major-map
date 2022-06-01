@@ -65,9 +65,9 @@ class MajorMap:
         :param labels: if True, this will return a dict that has each list labeled by their term
         :return: with no args, a list of lists of each course (string), each list being a term
         """
-        if hours and labeled:
+        if hours and labels:
             return self.hours_terms_dict
-        if labeled:
+        if labels:
             return self.terms_dict
         if hours:
             return self.hours_term_list
