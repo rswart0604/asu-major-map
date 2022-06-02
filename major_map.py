@@ -138,3 +138,19 @@ class MajorMap:
                     tmp_hours += int(hours[0])  # if there's a range (ie 1-2 hours), just take the first one
             terms_and_hours[term] = tmp_hours
         return terms_and_hours
+
+    def get_course_abbreviations(self):
+        """this will return only the class abbreviation (ie ENG 101). Still keep as a dict
+        *** if the course does not have a label, it will be omitted. simplifies it
+        :return: a dict of classes and term labels without hours and only abbreviations
+        """
+
+        foo = self.get_terms_list(False, True)
+        out = {}
+        for term, courses in foo.items():
+            tmp_courses = []
+            for course in courses:
+                if course[0:3].isupper() and course[3] == ' ' and course[4:7].isdigit():
+                    tmp_courses.append(course[0:7])
+            out[term] = tmp_courses
+        return out
