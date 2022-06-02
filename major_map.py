@@ -119,3 +119,22 @@ class MajorMap:
                 if x not in list1:
                     list1.append(x)
             return list1
+
+    def get_total_hours(self):
+        total = 0
+        for courses in self.get_terms_list(True):
+            for course, hour in courses:
+                total += hour
+        return total
+
+    def get_hours_per_term(self):
+        terms_and_hours = {}
+        for term, courses in self.get_terms_list(True, True).items():
+            tmp_hours = 0
+            for course, hours in courses:
+                try:
+                    tmp_hours += int(hours)
+                except ValueError:
+                    tmp_hours += int(hours[0])  # if there's a range (ie 1-2 hours), just take the first one
+            terms_and_hours[term] = tmp_hours
+        return terms_and_hours

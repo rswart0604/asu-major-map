@@ -17,8 +17,6 @@ class Chart:
         self.BOX_WIDTH = 6
         self.BOX_HEIGHT = 4
 
-
-
     def get_graph(self):
         with schemdraw.Drawing() as d:
             if type(self.map) is dict:
