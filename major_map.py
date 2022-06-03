@@ -42,6 +42,8 @@ class MajorMap:
         self.abbreviation_to_course_name = {}
         tables = soup.find_all("table", class_="termTbl")
 
+        self.name = soup.find('div', class_='left t1Div').get_text().strip()
+
         # print("hello!")  # sanity
 
         # go thru each table
@@ -68,7 +70,10 @@ class MajorMap:
                         continue
 
                     course = str(course_text).strip().replace("  ", " ").replace("\n", "").replace("\r", "")
-                    url = course_tr.div.a['href']
+                    if course_tr.div.a is not None:
+                        url = course_tr.div.a['href']
+                    else:
+                        url = None
                     temp_urls_course_list.append((course, url))
                     self.course_to_url[course] = url
                     temp_hours_course_list.append((course, hours))  # combine the course and hours needed
@@ -79,6 +84,12 @@ class MajorMap:
             self.terms_list.append(temp_course_list)
             self.terms_dict[term_number] = temp_course_list
             self.terms_dict_urls[term_number] = temp_urls_course_list
+
+    def get_name(self):
+        return self.name + ' Major Map'
+
+    def __str__(self):
+        return self.get_name()
 
     def get_terms_list(self, hours=False, labels=False, urls=False):
         """Will return a list of the courses in the map. Will be a nested list
@@ -175,6 +186,8 @@ class MajorMap:
         # turn that list into where it actually has the official naming
         # output that official naming list
         url = self.course_to_url[course_name]
+        if url is None or url[0] == '#' or len(url) < 34:
+            return []
 
         # get some more soup!
         new_url = url.replace('courselist', 'mycourselistresults')
