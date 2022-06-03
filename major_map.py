@@ -39,6 +39,7 @@ class MajorMap:
         self.terms_dict = {}
         self.terms_dict_urls = {}
         self.course_to_url = {}
+        self.abbreviation_to_course_name = {}
         tables = soup.find_all("table", class_="termTbl")
 
         # print("hello!")  # sanity
@@ -151,32 +152,21 @@ class MajorMap:
             terms_and_hours[term] = tmp_hours
         return terms_and_hours
 
-    def get_course_abbreviations(self, with_urls=True):
+    def get_course_abbreviations(self):
         """this will return only the class abbreviation (ie ENG 101). Still keep as a dict
         *** if the course does not have a label, it will be omitted!!
         :return: a dict of classes and term labels without hours and only abbreviations. see below
         """
-        if with_urls:  # this is a bit of a special method meant for map_chart
-            foo = self.get_terms_list(urls=True)  # {term label: [(course name, url), ...]}
-            out = {}
-            for courses in foo.values():
-                tmp_courses = []
-                for course in courses:  # we gotta remember that we have course is of form (course_name, url)
-                    if course[0][0:3].isupper() and course[0][3] == ' ' and course[0][4:7].isdigit()\
-                            and course[1][0] != '#':  # course[0] checks the name, course[1] checks the url
-                        tmp_courses.append((course[0], course[0][0:7], course[1]))
-                out[term] = tmp_courses
-            return out  # return is of form {term label: [(course name, course abbreviation, url), ...]}
-        else:
-            foo = self.get_terms_list(False, True)
-            out = {}
-            for term, courses in foo.items():
-                tmp_courses = []
-                for course in courses:
-                    if course[0:3].isupper() and course[3] == ' ' and course[4:7].isdigit():
-                        tmp_courses.append(course[0:7])
-                out[term] = tmp_courses
-            return out  # return is of form {term label: [course abbreviation, ...]}
+        foo = self.get_terms_list(False, True)
+        out = {}
+        for term, courses in foo.items():
+            tmp_courses = []
+            for course in courses:
+                if course[0:3].isupper() and course[3] == ' ' and course[4:7].isdigit():
+                    tmp_courses.append(course[0:7])
+                    self.abbreviation_to_course_name[course[0:7]] = course
+            out[term] = tmp_courses
+        return out  # return is of form {term label: [course abbreviation, ...]}
 
     def find_prereqs(self, course_name: str):
         # take all of the abbreviations that we have
@@ -186,12 +176,20 @@ class MajorMap:
         # output that official naming list
         url = self.course_to_url[course_name]
 
-        """
-        LOGIC TO FIND THE PREREQS TEXT
-        """
-        text = ""
-        for abb in self.get_course_abbreviations():
+        # get some more soup!
+        new_url = url.replace('courselist', 'mycourselistresults')
+        print(new_url)
+        foo = urllib.request.urlopen(new_url)
+        a = foo.read()
+        a.decode("utf8")
+        soup = BeautifulSoup(a, features='html.parser')
+        text = soup.find('td', class_='courseTitleLongColumnValue').text
 
-
-
-        return
+        out = []
+        abbreviations = flatten(self.get_course_abbreviations().values())
+        for abb in abbreviations:
+            if abb in text:
+                out.append(self.abbreviation_to_course_name[abb])
+            elif abb[0:3] in text and abb[4:7] in text:  # going a lil complicated but cmon just work already
+                out.append(self.abbreviation_to_course_name[abb])
+        return out
