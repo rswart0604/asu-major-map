@@ -37,6 +37,8 @@ class MajorMap:
         self.hours_terms_dict = {}
         self.terms_list = []
         self.terms_dict = {}
+        self.terms_dict_urls = {}
+        self.course_to_url = {}
         tables = soup.find_all("table", class_="termTbl")
 
         # print("hello!")  # sanity
@@ -52,24 +54,32 @@ class MajorMap:
             # sift through that courses list and get the specific courses and their credit hour amounts
             temp_hours_course_list = []
             temp_course_list = []
+            temp_urls_course_list = []
             for course_tr in courses_table_rows:
                 if course_tr.div is not None:  # if the course is a thing, get its data
                     course_text = course_tr.div.get_text()  # the course name
+
                     try:
                         hours = str(course_tr.find_all('td')[2].get_text()).split()[0]  # the credit hours needed
                     except Exception:
                         continue
                     if len(hours) == 0:
                         continue
+
                     course = str(course_text).strip().replace("  ", " ").replace("\n", "").replace("\r", "")
+                    url = course_tr.div.a['href']
+                    temp_urls_course_list.append((course, url))
+                    self.course_to_url[course] = url
                     temp_hours_course_list.append((course, hours))  # combine the course and hours needed
                     temp_course_list.append(course)
+
             self.hours_term_list.append(temp_hours_course_list)  # add this term's courses to our overall list
             self.hours_terms_dict[term_number] = temp_hours_course_list  # and dict
             self.terms_list.append(temp_course_list)
             self.terms_dict[term_number] = temp_course_list
+            self.terms_dict_urls[term_number] = temp_urls_course_list
 
-    def get_terms_list(self, hours=False, labels=False):
+    def get_terms_list(self, hours=False, labels=False, urls=False):
         """Will return a list of the courses in the map. Will be a nested list
         where each term's worth of courses are in their own list
 
@@ -84,15 +94,17 @@ class MajorMap:
             return copy.deepcopy(self.terms_dict)
         if hours:
             return copy.deepcopy(self.hours_term_list)
+        if urls:
+            return copy.deepcopy(self.terms_dict_urls)
         return copy.deepcopy(self.terms_list)
 
-    def find_similar_courses(self, maj_map: 'MajorMap'):
+    def get_sim_courses(self, maj_map: 'MajorMap'):
         list1 = self.terms_list
         list2 = maj_map.get_terms_list()
         out = [item for item in list1 if item in list2]
         return out
 
-    def find_diff_courses(self, maj_map: 'MajorMap'):
+    def get_diff_courses(self, maj_map: 'MajorMap'):
         """Finds mutually exclusive courses
         :param maj_map: a major map that you want to find the exclusive courses of
         :return: a list of all courses in maj_map that are not in self
@@ -102,7 +114,7 @@ class MajorMap:
         out = [x for x in list2 if x not in list1]
         return out
 
-    def get_total_classes(self, maj_map: 'MajorMap', labels=False):
+    def get_total_courses(self, maj_map: 'MajorMap', labels=False):
         if labels:  # use stupid term labels
             dict1 = self.get_terms_list(False, True)
             dict2 = maj_map.get_terms_list(False, True)
@@ -139,18 +151,47 @@ class MajorMap:
             terms_and_hours[term] = tmp_hours
         return terms_and_hours
 
-    def get_course_abbreviations(self):
+    def get_course_abbreviations(self, with_urls=True):
         """this will return only the class abbreviation (ie ENG 101). Still keep as a dict
-        *** if the course does not have a label, it will be omitted. simplifies it
-        :return: a dict of classes and term labels without hours and only abbreviations
+        *** if the course does not have a label, it will be omitted!!
+        :return: a dict of classes and term labels without hours and only abbreviations. see below
         """
+        if with_urls:  # this is a bit of a special method meant for map_chart
+            foo = self.get_terms_list(urls=True)  # {term label: [(course name, url), ...]}
+            out = {}
+            for courses in foo.values():
+                tmp_courses = []
+                for course in courses:  # we gotta remember that we have course is of form (course_name, url)
+                    if course[0][0:3].isupper() and course[0][3] == ' ' and course[0][4:7].isdigit()\
+                            and course[1][0] != '#':  # course[0] checks the name, course[1] checks the url
+                        tmp_courses.append((course[0], course[0][0:7], course[1]))
+                out[term] = tmp_courses
+            return out  # return is of form {term label: [(course name, course abbreviation, url), ...]}
+        else:
+            foo = self.get_terms_list(False, True)
+            out = {}
+            for term, courses in foo.items():
+                tmp_courses = []
+                for course in courses:
+                    if course[0:3].isupper() and course[3] == ' ' and course[4:7].isdigit():
+                        tmp_courses.append(course[0:7])
+                out[term] = tmp_courses
+            return out  # return is of form {term label: [course abbreviation, ...]}
 
-        foo = self.get_terms_list(False, True)
-        out = {}
-        for term, courses in foo.items():
-            tmp_courses = []
-            for course in courses:
-                if course[0:3].isupper() and course[3] == ' ' and course[4:7].isdigit():
-                    tmp_courses.append(course[0:7])
-            out[term] = tmp_courses
-        return out
+    def find_prereqs(self, course_name: str):
+        # take all of the abbreviations that we have
+        # scrape and find the official prereqs text
+        # add each item in abbreviations list that is in prereqs text and add to a list
+        # turn that list into where it actually has the official naming
+        # output that official naming list
+        url = self.course_to_url[course_name]
+
+        """
+        LOGIC TO FIND THE PREREQS TEXT
+        """
+        text = ""
+        for abb in self.get_course_abbreviations():
+
+
+
+        return

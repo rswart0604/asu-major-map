@@ -12,19 +12,21 @@ class Chart:
         """
         if type(args[0]) is MajorMap:
             self.map = args[0].get_terms_list(False, True)
+            self.maj_map = args[0]
         else:
             self.map = args[0]
+            self.maj_map = None
         self.BOX_WIDTH = 6
         self.BOX_HEIGHT = 4
 
     def get_graph(self):
         with schemdraw.Drawing() as d:
-            if type(self.map) is dict:
+            if type(self.map) is dict:  # term labels! yay! for once!
                 x_pos = 0
                 for term, courses in self.map.items():
                     d += flow.Box(w=self.BOX_WIDTH, h=self.BOX_HEIGHT).label(term).at((x_pos, 0))  # our term label
                     y_pos = 0
-                    for course in courses:
+                    for course in courses:  # go through each term's courses pls
                         y_pos -= (self.BOX_HEIGHT + 1)
 
                         # stupid stupid string formatting stuff. no more than 20 chars per line
