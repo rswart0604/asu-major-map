@@ -15,6 +15,21 @@ def flatten(nested_list: list) -> list:
     return temp
 
 
+def get_key_from_nested(some_dict: dict, some_value):
+    for key, values in some_dict.items():
+        for value in values:
+            if value == some_value:
+                return key
+
+
+def get_longest_from_nested(some_dict: dict):
+    out = 0
+    for vals in some_dict.values():
+        if len(vals) > out:
+            out = len(vals)
+    return out
+
+
 class MajorMap:
     AEROSPACE = "https://degrees.apps.asu.edu/major-map/ASU00/ESAEROBSE/null/ALL/2020?init=false&nopassive=true"
     ENGLISH = "https://degrees.apps.asu.edu/major-map/ASU00/LAENGBA/null/ONLINE/2013?init=false&nopassive=true"
@@ -191,7 +206,6 @@ class MajorMap:
 
         # get some more soup!
         new_url = url.replace('courselist', 'mycourselistresults')
-        print(new_url)
         foo = urllib.request.urlopen(new_url)
         a = foo.read()
         a.decode("utf8")
