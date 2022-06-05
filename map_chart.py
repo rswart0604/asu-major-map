@@ -1,3 +1,4 @@
+import copy
 import random
 
 import major_map
@@ -5,6 +6,7 @@ from major_map import MajorMap
 import schemdraw
 from schemdraw import flow
 import math
+from pprint import pprint
 
 
 def format_words(course: str):
@@ -54,9 +56,14 @@ class Chart:
 
                 flat_list = major_map.flatten(self.maj_map.get_terms_list())
                 prereq_to_n = dict(zip(flat_list, [0] * len(flat_list)))
+                course_to_n = copy.deepcopy(prereq_to_n)
 
                 y_channels = [0] * (len(self.map) - 1)
-                x_channels = [0] * major_map.get_longest_from_nested(self.maj_map.get_terms_list(labels=True))
+                max_courses = major_map.get_longest_from_nested(self.maj_map.get_terms_list(labels=True))
+                if max_courses > 5:
+                    self.dy = 2.4
+                    self.dx = 2.6
+                x_channels = [0] * max_courses
 
                 course_to_box = {}
                 x_pos = 0
@@ -74,18 +81,21 @@ class Chart:
                         d += course_to_box[course]
                         prereqs = self.maj_map.find_prereqs(course)
                         if len(prereqs) > 0 and x_pos > 0:
-                            print(course + ": " + str(prereqs))
+                            # print(course + ": " + str(prereqs))
                             for prereq in set(prereqs):
                                 if prereq != course:
 
-                                    p_x, p_y = course_to_box[prereq].E[0], course_to_box[prereq].E[1]
+                                    try:
+                                        p_x, p_y = course_to_box[prereq].E[0], course_to_box[prereq].E[1]
+                                    except KeyError:
+                                        continue
                                     c_x, c_y = course_to_box[course].W[0], course_to_box[course].W[1]
 
                                     if math.isclose(p_y,
-                                                    c_y) and c_x - p_x < 2.1:  # we're right next to each other, with same y
+                                                    c_y) and c_x - p_x < self.dx + .1:  # we're right next to each other, with same y
                                         d += flow.Arc2(arrow='->', k=.3).at((p_x, p_y)).to((c_x, c_y))
                                     elif math.isclose(c_x - p_x, self.dx):  # we're right next to each other but diff y
-                                        d += flow.ArcN(arrow='->').at((p_x, p_y)).to((c_x, c_y))
+                                        d += flow.ArcZ(arrow='->').at((p_x, p_y)).to((c_x, c_y)).color(random.choice(colors)[1])
                                     else:  # far away in terms of x
                                         pre_term_rev = major_map.get_key_from_nested(
                                             self.maj_map.get_terms_list(labels=True),
@@ -95,16 +105,26 @@ class Chart:
                                                 y_ind = int(char) - 2
                                                 y_channels[y_ind] = y_channels[y_ind] + 1
                                         x_ind = self.map[term].index(course)
-                                        print(x_ind)
+                                        if x_ind == 6:
+                                            print(course)
+                                            print(self.map[term])
+                                            print(self.map[term].index(course))
+                                            print(x_channels[x_ind])
+                                        if course == 'MAT 243: Discrete Mathematical Structures':
+                                            print(course)
+                                            print(self.map[term])
+                                            print(self.map[term].index(course))
+                                            print(x_channels[x_ind])
                                         x_channels[x_ind] = x_channels[x_ind] + 1
 
-                                        tmp_point = (p_x + 1.5, c_y + 2 + (
+                                        tmp_point = (p_x + .2 * y_channels[y_ind], c_y + 2 + (
                                                     .2 * x_channels[x_ind]))
                                         color = random.choice(colors)[1]
                                         d += flow.Wire(shape='c', k=.2 * y_channels[y_ind]).at((p_x, p_y + .4 - (.2 * prereq_to_n[prereq]))).to(tmp_point).color(color)
                                         d += flow.Wire(shape='c', k=(c_x - tmp_point[0] - .3), arrow='->').at(
-                                            tmp_point).to((c_x, c_y)).color(color)
+                                            tmp_point).to((c_x, c_y + .6 - .2 * course_to_n[course])).color(color)
                                         prereq_to_n[prereq] = prereq_to_n[prereq] + 1
+                                        course_to_n[course] = course_to_n[course] + 1
 
                     x_pos += (self.BOX_WIDTH + self.dx)
             elif type(self.map) is dict:  # term labels! yay! for once!
@@ -250,10 +270,28 @@ colors = [
 
 
 if __name__ == '__main__':
-    cs = MajorMap(MajorMap.CS)
-    c = Chart(cs)
+
+    cs_cse = MajorMap(MajorMap.CS) + MajorMap(MajorMap.CSE)
+    c = Chart(cs_cse)
     c.get_graph()
-    # theatre = MajorMap("https://degrees.apps.asu.edu/major-map/ASU00/FAMUSPMBM/null/ALL/2022?init=false&nopassive=true")
-    # # print(theatre.get_terms_list())
-    # c = Chart(theatre)
+
+
+
+
+    # print('hi1')
+    # cs = MajorMap(MajorMap.AEROSPACE)
+    # print('hi')
+    # cse = MajorMap('https://degrees.apps.asu.edu/major-map/ASU00/ESCSEBSE/null/ALL/2022')
+    # print('hi!')
+    # cs_cse = cs + cse
+    # # pprint(cs_cse.get_terms_list(urls=True))
+    # # print(cs_cse.get_terms_list())
+    # # print(cs_cse.find_prereqs('Biology or Chemistry Course'))
+    # # print(cs.find_prereqs('CSE 485: Computer Science Capstone Project I (L)'))
+    # # print(cs.find_prereqs('CSE 330: Operating Systems'))
+    # c = Chart(cs_cse)
     # c.get_graph()
+    # # theatre = MajorMap("https://degrees.apps.asu.edu/major-map/ASU00/FAMUSPMBM/null/ALL/2022?init=false&nopassive=true")
+    # # # print(theatre.get_terms_list())
+    # # c = Chart(theatre)
+    # # c.get_graph()

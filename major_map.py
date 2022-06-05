@@ -1,7 +1,9 @@
 import copy
 
 from bs4 import BeautifulSoup
-import urllib.request
+from urllib.request import urlopen, ProxyHandler
+from proxy_finder import get_proxy
+from pprint import pprint
 
 
 def flatten(nested_list: list) -> list:
@@ -34,6 +36,7 @@ class MajorMap:
     AEROSPACE = "https://degrees.apps.asu.edu/major-map/ASU00/ESAEROBSE/null/ALL/2020?init=false&nopassive=true"
     ENGLISH = "https://degrees.apps.asu.edu/major-map/ASU00/LAENGBA/null/ONLINE/2013?init=false&nopassive=true"
     CS = 'https://degrees.apps.asu.edu/major-map/ASU00/ESCSEBS/null/ALL/2021?init=false&nopassive=true'
+    CSE = 'https://degrees.apps.asu.edu/major-map/ASU00/ESCSEBSE/null/ALL/2022'
 
     def __init__(self, major_map_url: str):
         """Create your favorite major map
@@ -42,9 +45,22 @@ class MajorMap:
         """
 
         # get our soup
-        foo = urllib.request.urlopen(major_map_url)
-        a = foo.read()
-        a.decode("utf8")
+        proxy = {'http': get_proxy()}
+        ProxyHandler(proxy)
+        print(proxy)
+        print('before')
+        for x in range(3):
+            try:
+                foo = urlopen(major_map_url, timeout=5)
+                break
+            except Exception:
+                proxy = {'http': get_proxy()}
+                ProxyHandler(proxy)
+                pass
+        if foo is None:
+            raise Exception
+        print('after')
+        a = foo.read().decode('utf8')
         soup = BeautifulSoup(a, features='html.parser')
 
         # set up return arrays, etc. and get our tables we're looking at
@@ -88,7 +104,7 @@ class MajorMap:
                     if course_tr.div.a is not None:
                         url = course_tr.div.a['href']
                     else:
-                        url = None
+                        url = '#None'
                     temp_urls_course_list.append((course, url))
                     self.course_to_url[course] = url
                     temp_hours_course_list.append((course, hours))  # combine the course and hours needed
@@ -101,10 +117,71 @@ class MajorMap:
             self.terms_dict_urls[term_number] = temp_urls_course_list
 
     def get_name(self):
-        return self.name + ' Major Map'
+        return self.name
 
     def __str__(self):
         return self.get_name()
+
+    def __add__(self, other):
+        if len(self.get_terms_list()) != len(other.get_terms_list()):
+            raise ValueError('Number of terms are different')
+        self.name = self.get_name() + ' AND ' + other.get_name()
+        # terms_list
+        other_list = flatten(other.get_terms_list())
+        print(other_list)
+        tmp_end = []
+        i = 0
+        for courses in self.get_terms_list():
+            tmp = []
+            for course in courses:
+                # print(course)
+                # print(course in other_list)
+                if course not in other_list:
+                    tmp.append(course)
+            tmp_end.append(courses + other.get_terms_list()[i])
+            i += 1
+        self.terms_list = tmp_end
+        # print(len(self.terms_list[2]))
+        # print(len(set(self.terms_list[2])))
+
+        # terms_dict
+        self.terms_dict = dict(zip(self.terms_dict.keys(), self.terms_list))
+
+        # hours_term_list
+        tmp_end = []
+        i = 0
+        for courses in self.get_terms_list(hours=True):
+            tmp = []
+            for course, hour in courses:
+                if course not in other_list:
+                    tmp.append((course, hour))
+            tmp_end.append(tmp + other.get_terms_list(hours=True)[i])
+            i += 1
+        self.hours_term_list = tmp_end
+
+        # hours_terms_dict
+        self.hours_term_dict = dict(zip(self.terms_dict.keys(), self.hours_term_list))
+
+        # terms_dict_urls
+        tmp_end = []
+        i = 0
+        for courses in self.get_terms_list(urls=True).values():
+            tmp = []
+            for course, url in courses:
+                if course not in other_list:
+                    tmp.append((course, url))
+            tmp_end.append(tmp + list(other.get_terms_list(urls=True).values())[i])
+            i += 1
+        self.terms_dict_urls = dict(zip(self.terms_dict.keys(), tmp_end))
+        l1, l2 = [], []
+        for x in flatten(tmp_end):
+            l1.append(x[0])
+            l2.append(x[1])
+        self.course_to_url = dict(zip(l1, l2))
+
+        return self
+
+
 
     def get_terms_list(self, hours=False, labels=False, urls=False):
         """Will return a list of the courses in the map. Will be a nested list
@@ -116,14 +193,14 @@ class MajorMap:
         :return: with no args, a list of lists of each course (string), each list being a term
         """
         if hours and labels:
-            return copy.deepcopy(self.hours_terms_dict)
+            return copy.deepcopy(self.hours_terms_dict)  # {'term': [('course', 'hours'), ...], ...}
         if labels:
-            return copy.deepcopy(self.terms_dict)
+            return copy.deepcopy(self.terms_dict)  # {'term': ['course', ...], ...}
         if hours:
-            return copy.deepcopy(self.hours_term_list)
+            return copy.deepcopy(self.hours_term_list)  # [[('course', 'hours'], ...], ...]
         if urls:
-            return copy.deepcopy(self.terms_dict_urls)
-        return copy.deepcopy(self.terms_list)
+            return copy.deepcopy(self.terms_dict_urls)  # {'term': [('course', 'url'), ...], ...}
+        return copy.deepcopy(self.terms_list)  # [['course', ...], ...]
 
     def get_sim_courses(self, maj_map: 'MajorMap'):
         list1 = self.terms_list
@@ -200,17 +277,32 @@ class MajorMap:
         # add each item in abbreviations list that is in prereqs text and add to a list
         # turn that list into where it actually has the official naming
         # output that official naming list
+
         url = self.course_to_url[course_name]
         if url is None or url[0] == '#' or len(url) < 34:
             return []
 
         # get some more soup!
         new_url = url.replace('courselist', 'mycourselistresults')
-        foo = urllib.request.urlopen(new_url)
+        print(new_url)
+        for x in range(3):
+            try:
+                foo = urlopen(new_url)
+                break
+            except Exception:
+                pass
+        if foo is None:
+            raise Exception
+
         a = foo.read()
         a.decode("utf8")
         soup = BeautifulSoup(a, features='html.parser')
-        text = soup.find('td', class_='courseTitleLongColumnValue').text
+        tables = soup.find_all('td', class_='courseTitleLongColumnValue')
+
+        if len(tables) > 1:
+            return []
+        else:
+            text = tables[0].text
 
         out = []
         abbreviations = flatten(self.get_course_abbreviations().values())
@@ -220,3 +312,10 @@ class MajorMap:
             elif abb[0:3] in text and abb[4:7] in text:  # going a lil complicated but cmon just work already
                 out.append(self.abbreviation_to_course_name[abb])
         return out
+
+
+if __name__ == '__main__':
+    cs = MajorMap(MajorMap.CS)
+    aero = MajorMap(MajorMap.AEROSPACE)
+    cs_aero = cs + aero
+    pprint(cs_aero.get_terms_list(urls=True))
