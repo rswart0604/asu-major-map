@@ -1,5 +1,6 @@
 import copy
 import random
+import time
 
 import major_map
 from major_map import MajorMap
@@ -45,10 +46,11 @@ class Chart:
         self.BOX_HEIGHT = 4
         self.dx = 2
         self.dy = 2
+        self.removed_courses = []
 
     def get_graph(self):
-        file_name = str(self.maj_map).lower().replace(' ',
-                                                      '_') + '.svg' if self.maj_map is not None else 'major_map.svg'
+        file_name = str(self.maj_map).lower().replace(' ', '_') \
+                    + '.svg' if self.maj_map is not None else 'major_map.svg'
         with schemdraw.Drawing(file=file_name, fontsize=12) as d:
 
             if self.maj_map is not None:
@@ -67,10 +69,14 @@ class Chart:
 
                 course_to_box = {}
                 x_pos = 0
+
+
+
                 for term, courses in self.map.items():
                     d += flow.Box(w=self.BOX_WIDTH, h=self.BOX_HEIGHT).label(term).at((x_pos, 0))  # our term label
                     y_pos = 0
                     for course in courses:  # go through each term's courses pls
+                        print(course)
                         y_pos -= (self.BOX_HEIGHT + self.dy)
 
                         # stupid stupid string formatting stuff. no more than 20 chars per line allowed
@@ -105,16 +111,6 @@ class Chart:
                                                 y_ind = int(char) - 2
                                                 y_channels[y_ind] = y_channels[y_ind] + 1
                                         x_ind = self.map[term].index(course)
-                                        if x_ind == 6:
-                                            print(course)
-                                            print(self.map[term])
-                                            print(self.map[term].index(course))
-                                            print(x_channels[x_ind])
-                                        if course == 'MAT 243: Discrete Mathematical Structures':
-                                            print(course)
-                                            print(self.map[term])
-                                            print(self.map[term].index(course))
-                                            print(x_channels[x_ind])
                                         x_channels[x_ind] = x_channels[x_ind] + 1
 
                                         tmp_point = (p_x + .2 * y_channels[y_ind], c_y + 2 + (
@@ -150,6 +146,8 @@ class Chart:
 
                         d += flow.Box(w=self.BOX_WIDTH, h=self.BOX_HEIGHT).label(result).at((x_pos, y_pos))
                     x_pos += (self.BOX_WIDTH + self.dx)
+
+
 
 
 colors = [
@@ -268,30 +266,12 @@ colors = [
 ]
 
 
-
 if __name__ == '__main__':
-
-    cs_cse = MajorMap(MajorMap.CS) + MajorMap(MajorMap.CSE)
-    c = Chart(cs_cse)
-    c.get_graph()
-
-
-
-
-    # print('hi1')
-    # cs = MajorMap(MajorMap.AEROSPACE)
-    # print('hi')
-    # cse = MajorMap('https://degrees.apps.asu.edu/major-map/ASU00/ESCSEBSE/null/ALL/2022')
-    # print('hi!')
-    # cs_cse = cs + cse
-    # # pprint(cs_cse.get_terms_list(urls=True))
-    # # print(cs_cse.get_terms_list())
-    # # print(cs_cse.find_prereqs('Biology or Chemistry Course'))
-    # # print(cs.find_prereqs('CSE 485: Computer Science Capstone Project I (L)'))
-    # # print(cs.find_prereqs('CSE 330: Operating Systems'))
+    start = time.time()
+    # cs_cse = MajorMap(MajorMap.CS) + MajorMap(MajorMap.CSE)
     # c = Chart(cs_cse)
-    # c.get_graph()
-    # # theatre = MajorMap("https://degrees.apps.asu.edu/major-map/ASU00/FAMUSPMBM/null/ALL/2022?init=false&nopassive=true")
-    # # # print(theatre.get_terms_list())
-    # # c = Chart(theatre)
-    # # c.get_graph()
+    cse = MajorMap(MajorMap.CSE)
+    cse.remove_courses('hi')
+    c = Chart(cse)
+    c.get_graph()
+    print(time.time() - start)

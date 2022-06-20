@@ -6,7 +6,7 @@ from proxy_finder import get_proxy
 from pprint import pprint
 
 
-def flatten(nested_list: list) -> list:
+def flatten(nested_list) -> list:
     temp = []
     for x in nested_list:
         if type(x) is list:
@@ -110,9 +110,9 @@ class MajorMap:
                     temp_hours_course_list.append((course, hours))  # combine the course and hours needed
                     temp_course_list.append(course)
 
-            self.hours_term_list.append(temp_hours_course_list)  # add this term's courses to our overall list
+            self.hours_term_list.append(copy.deepcopy(temp_hours_course_list))  # add this term's courses to our overall list
             self.hours_terms_dict[term_number] = temp_hours_course_list  # and dict
-            self.terms_list.append(temp_course_list)
+            self.terms_list.append(copy.deepcopy(temp_course_list))
             self.terms_dict[term_number] = temp_course_list
             self.terms_dict_urls[term_number] = temp_urls_course_list
 
@@ -128,7 +128,7 @@ class MajorMap:
         self.name = self.get_name() + ' AND ' + other.get_name()
         # terms_list
         other_list = flatten(other.get_terms_list())
-        print(other_list)
+        # print(other_list)
         tmp_end = []
         i = 0
         for courses in self.get_terms_list():
@@ -138,9 +138,11 @@ class MajorMap:
                 # print(course in other_list)
                 if course not in other_list:
                     tmp.append(course)
-            tmp_end.append(courses + other.get_terms_list()[i])
+            tmp_end.append(tmp + other.get_terms_list()[i])
+            # print(tmp_end)
             i += 1
         self.terms_list = tmp_end
+        # print(self.terms_list)
         # print(len(self.terms_list[2]))
         # print(len(set(self.terms_list[2])))
 
@@ -201,6 +203,28 @@ class MajorMap:
         if urls:
             return copy.deepcopy(self.terms_dict_urls)  # {'term': [('course', 'url'), ...], ...}
         return copy.deepcopy(self.terms_list)  # [['course', ...], ...]
+
+    def remove_courses(self, courses):
+        if type(courses) is str:
+            courses = (courses,)
+        for course in courses:
+            print('boo')
+            # use the fact that terms_list ordering is the same as all the other lists
+            key = ''
+            for x in range(len(self.terms_list)):
+                # print(self.terms_list[x])
+                if course in self.terms_list[x]:
+                    y = self.terms_list[x].index(course)
+                    self.terms_list[x].remove(course)
+                    self.hours_term_list[x].pop(y)
+                    key = list(self.terms_dict.keys())[x]
+                    self.hours_terms_dict.get(key).pop(y)
+                    self.terms_dict.get(key).pop(y)
+                    self.terms_dict_urls.get(key).pop(y)
+                    break
+        print('hi')
+        return
+
 
     def get_sim_courses(self, maj_map: 'MajorMap'):
         list1 = self.terms_list
@@ -315,7 +339,11 @@ class MajorMap:
 
 
 if __name__ == '__main__':
-    cs = MajorMap(MajorMap.CS)
-    aero = MajorMap(MajorMap.AEROSPACE)
-    cs_aero = cs + aero
-    pprint(cs_aero.get_terms_list(urls=True))
+    # cs = MajorMap(MajorMap.CS)
+    cse = MajorMap(MajorMap.CSE)
+    cse.remove_courses('CSE 230: Computer Organization and Assembly Language Programming')
+    print(cse.hours_term_list[3])
+    print(cse.terms_dict.get('Term 4'))
+    # cs_cse = cs + cse
+    # pprint(cs.get_terms_list())
+    # pprint(cs_cse.get_terms_list())
