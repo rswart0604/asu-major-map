@@ -37,7 +37,7 @@ class Chart:
         :param args: a MajorMap object, a dict from a MajorMap, or a nested list of courses in a map
         """
         if type(args[0]) is MajorMap:
-            self.map = args[0].get_terms_list(False, True)
+            self.map = args[0].get_terms_list(False, True, return_copy=False)
             self.maj_map = args[0]
         else:
             self.map = args[0]
@@ -47,6 +47,7 @@ class Chart:
         self.dx = 2
         self.dy = 2
         self.removed_courses = []
+        self.wires_colors = {}
 
     def get_graph(self):
         file_name = str(self.maj_map).lower().replace(' ', '_') \
@@ -70,13 +71,10 @@ class Chart:
                 course_to_box = {}
                 x_pos = 0
 
-
-
                 for term, courses in self.map.items():
                     d += flow.Box(w=self.BOX_WIDTH, h=self.BOX_HEIGHT).label(term).at((x_pos, 0))  # our term label
                     y_pos = 0
                     for course in courses:  # go through each term's courses pls
-                        print(course)
                         y_pos -= (self.BOX_HEIGHT + self.dy)
 
                         # stupid stupid string formatting stuff. no more than 20 chars per line allowed
@@ -101,7 +99,12 @@ class Chart:
                                                     c_y) and c_x - p_x < self.dx + .1:  # we're right next to each other, with same y
                                         d += flow.Arc2(arrow='->', k=.3).at((p_x, p_y)).to((c_x, c_y))
                                     elif math.isclose(c_x - p_x, self.dx):  # we're right next to each other but diff y
-                                        d += flow.ArcZ(arrow='->').at((p_x, p_y)).to((c_x, c_y)).color(random.choice(colors)[1])
+                                        try:
+                                            color = self.wires_colors[(prereq, course)]
+                                        except KeyError:
+                                            color = random.choice(colors)[1]
+                                            self.wires_colors[(prereq, course)] = color
+                                        d += flow.ArcZ(arrow='->').at((p_x, p_y)).to((c_x, c_y)).color(color)
                                     else:  # far away in terms of x
                                         pre_term_rev = major_map.get_key_from_nested(
                                             self.maj_map.get_terms_list(labels=True),
@@ -115,7 +118,11 @@ class Chart:
 
                                         tmp_point = (p_x + .2 * y_channels[y_ind], c_y + 2 + (
                                                     .2 * x_channels[x_ind]))
-                                        color = random.choice(colors)[1]
+                                        try:
+                                            color = self.wires_colors[(prereq, course)]
+                                        except KeyError:
+                                            color = random.choice(colors)[1]
+                                            self.wires_colors[(prereq, course)] = color
                                         d += flow.Wire(shape='c', k=.2 * y_channels[y_ind]).at((p_x, p_y + .4 - (.2 * prereq_to_n[prereq]))).to(tmp_point).color(color)
                                         d += flow.Wire(shape='c', k=(c_x - tmp_point[0] - .3), arrow='->').at(
                                             tmp_point).to((c_x, c_y + .6 - .2 * course_to_n[course])).color(color)
@@ -268,10 +275,10 @@ colors = [
 
 if __name__ == '__main__':
     start = time.time()
-    # cs_cse = MajorMap(MajorMap.CS) + MajorMap(MajorMap.CSE)
-    # c = Chart(cs_cse)
-    cse = MajorMap(MajorMap.CSE)
-    cse.remove_courses('hi')
-    c = Chart(cse)
+    cs = MajorMap(MajorMap.CS)
+    c = Chart(cs)
+    c.get_graph()
+    cs.move_course('CSE 110', 'Term 1', 'Term 2')
+    # print(cs.get_terms_list(False, True))
     c.get_graph()
     print(time.time() - start)

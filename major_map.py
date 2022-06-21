@@ -71,6 +71,7 @@ class MajorMap:
         self.terms_dict_urls = {}
         self.course_to_url = {}
         self.abbreviation_to_course_name = {}
+        self.prereqs = {}
         tables = soup.find_all("table", class_="termTbl")
 
         self.name = soup.find('div', class_='left t1Div').get_text().strip()
@@ -110,7 +111,8 @@ class MajorMap:
                     temp_hours_course_list.append((course, hours))  # combine the course and hours needed
                     temp_course_list.append(course)
 
-            self.hours_term_list.append(copy.deepcopy(temp_hours_course_list))  # add this term's courses to our overall list
+            self.hours_term_list.append(
+                copy.deepcopy(temp_hours_course_list))  # add this term's courses to our overall list
             self.hours_terms_dict[term_number] = temp_hours_course_list  # and dict
             self.terms_list.append(copy.deepcopy(temp_course_list))
             self.terms_dict[term_number] = temp_course_list
@@ -181,11 +183,13 @@ class MajorMap:
             l2.append(x[1])
         self.course_to_url = dict(zip(l1, l2))
 
+        for key, value in other.prereqs:
+            if key not in self.prereqs.keys():
+                self.prereqs[key] = value
+
         return self
 
-
-
-    def get_terms_list(self, hours=False, labels=False, urls=False):
+    def get_terms_list(self, hours=False, labels=False, urls=False, return_copy=True):
         """Will return a list of the courses in the map. Will be a nested list
         where each term's worth of courses are in their own list
 
@@ -195,18 +199,25 @@ class MajorMap:
         :return: with no args, a list of lists of each course (string), each list being a term
         """
         if hours and labels:
-            return copy.deepcopy(self.hours_terms_dict)  # {'term': [('course', 'hours'), ...], ...}
-        if labels:
-            return copy.deepcopy(self.terms_dict)  # {'term': ['course', ...], ...}
-        if hours:
-            return copy.deepcopy(self.hours_term_list)  # [[('course', 'hours'], ...], ...]
-        if urls:
-            return copy.deepcopy(self.terms_dict_urls)  # {'term': [('course', 'url'), ...], ...}
-        return copy.deepcopy(self.terms_list)  # [['course', ...], ...]
+            out = self.hours_terms_dict  # {'term': [('course', 'hours'), ...], ...}
+        elif labels:
+            out = self.terms_dict  # {'term': ['course', ...], ...}
+        elif hours:
+            out = self.hours_term_list  # [[('course', 'hours'], ...], ...]
+        elif urls:
+            out = self.terms_dict_urls  # {'term': [('course', 'url'), ...], ...}
+        else:
+            out = self.terms_list  # [['course', ...], ...]
+        if return_copy:
+            return copy.deepcopy(out)
+        else:
+            return out
 
-    def remove_courses(self, courses):
+    def remove_courses(self, courses, abbreviated=True):
         if type(courses) is str:
             courses = (courses,)
+        if abbreviated:
+            courses = self.abbreviate_courses(courses)
         for course in courses:
             print('boo')
             # use the fact that terms_list ordering is the same as all the other lists
@@ -224,7 +235,6 @@ class MajorMap:
                     break
         print('hi')
         return
-
 
     def get_sim_courses(self, maj_map: 'MajorMap'):
         list1 = self.terms_list
@@ -302,6 +312,14 @@ class MajorMap:
         # turn that list into where it actually has the official naming
         # output that official naming list
 
+        print(course_name)
+        try:
+            r = self.prereqs[course_name]
+            print('nailed it')
+            return r
+        except KeyError as e:
+            pass
+
         url = self.course_to_url[course_name]
         if url is None or url[0] == '#' or len(url) < 34:
             return []
@@ -335,7 +353,50 @@ class MajorMap:
                 out.append(self.abbreviation_to_course_name[abb])
             elif abb[0:3] in text and abb[4:7] in text:  # going a lil complicated but cmon just work already
                 out.append(self.abbreviation_to_course_name[abb])
+        self.prereqs[course_name] = out
+        print(course_name + ":   " + str(self.prereqs[course_name]))
         return out
+
+    def abbreviate_courses(self, courses):
+        self.get_course_abbreviations()
+        if type(courses) is str: courses = (courses,)
+        out = []
+        for course in courses:
+            try:
+                out.append(self.abbreviation_to_course_name[course])
+            except KeyError:
+                continue
+        return out
+
+    def move_course(self, course, source, dest, abbreviation=True):
+        if abbreviation:
+            course = self.abbreviation_to_course_name[course]
+        keys_list = list(self.terms_dict.keys())
+        src_i = keys_list.index(source)
+        dest_i = keys_list.index(dest)
+
+        i = self.terms_list[src_i].index(course)
+        self.terms_list[src_i].remove(course)
+        self.terms_list[dest_i].append(course)
+
+        tmp = self.hours_term_list[src_i][i]
+        self.hours_term_list[src_i].remove(tmp)
+        self.hours_term_list[dest_i].append(tmp)
+
+        i = self.terms_dict[source].index(course)
+        self.terms_dict[source].remove(course)
+        self.terms_dict[dest].append(course)
+
+        tmp = self.hours_terms_dict[source][i]
+        self.hours_terms_dict[source].remove(tmp)
+        self.hours_terms_dict[dest].append(tmp)
+
+        tmp = self.terms_dict_urls[source][i]
+        self.terms_dict_urls[source].remove(tmp)
+        self.terms_dict_urls[dest].append(tmp)
+
+
+
 
 
 if __name__ == '__main__':
