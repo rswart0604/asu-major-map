@@ -217,9 +217,8 @@ class MajorMap:
         if type(courses) is str:
             courses = (courses,)
         if abbreviated:
-            courses = self.abbreviate_courses(courses)
+            courses = self.unabbreviate_courses(courses)
         for course in courses:
-            print('boo')
             # use the fact that terms_list ordering is the same as all the other lists
             key = ''
             for x in range(len(self.terms_list)):
@@ -233,7 +232,6 @@ class MajorMap:
                     self.terms_dict.get(key).pop(y)
                     self.terms_dict_urls.get(key).pop(y)
                     break
-        print('hi')
         return
 
     def get_sim_courses(self, maj_map: 'MajorMap'):
@@ -357,7 +355,7 @@ class MajorMap:
         print(course_name + ":   " + str(self.prereqs[course_name]))
         return out
 
-    def abbreviate_courses(self, courses):
+    def unabbreviate_courses(self, courses):
         self.get_course_abbreviations()
         if type(courses) is str: courses = (courses,)
         out = []
@@ -402,9 +400,9 @@ class MajorMap:
 if __name__ == '__main__':
     # cs = MajorMap(MajorMap.CS)
     cse = MajorMap(MajorMap.CSE)
-    cse.remove_courses('CSE 230: Computer Organization and Assembly Language Programming')
-    print(cse.hours_term_list[3])
-    print(cse.terms_dict.get('Term 4'))
+    # cse.remove_courses('CSE 230: Computer Organization and Assembly Language Programming')
+    # print(cse.hours_term_list[3])
+    # print(cse.terms_dict.get('Term 4'))
     # cs_cse = cs + cse
     # pprint(cs.get_terms_list())
     # pprint(cs_cse.get_terms_list())
